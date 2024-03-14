@@ -11,6 +11,14 @@ spring:
     name: edge-service
   lifecycle:
     timeout-per-shutdown-phase: 15s
+  config:
+    import: "optional:configserver:"
+
+  session:
+    store-type: redis
+    timeout: 10m
+    redis:
+      namespace: polar:edge
 
   data:
     redis:
@@ -20,8 +28,26 @@ spring:
       timeout: 1s
 
   cloud:
+    config:
+      uri: http://localhost:8888
+      request-connect-timeout: 5000
+      request-read-timeout: 5000
+      fail-fast: false # retry works only when true
+      retry:
+        max-attempts: 6
+        initial-interval: 1000
+        max-interval: 2000
+        multiplier: 1.1
+
     gateway:
       default-filters:
+        - SaveSession
+        - name: RequestRateLimiter
+          args:
+            redis-rate-limiter:
+              replenishRate: 10
+              burstCapacity: 20
+              requestedTokens: 1
         - name: Retry
           args:
             retries: 3
@@ -33,12 +59,6 @@ spring:
               maxBackOff: 500ms
               factor: 2
               basedOnPreviousValue: false
-        - name: RequestRateLimiter
-          args:
-            redis-rate-limiter:
-              replenishRate: 10
-              burstCapacity: 20
-              requestedTokens: 1
       httpclient:
         connect-timeout: 2000
         response-timeout: 5s
