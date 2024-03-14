@@ -12,6 +12,13 @@ spring:
   lifecycle:
     timeout-per-shutdown-phase: 15s
 
+  data:
+    redis:
+      connect-timeout: 2s
+      host: localhost
+      port: 6379
+      timeout: 1s
+
   cloud:
     gateway:
       default-filters:
@@ -26,6 +33,12 @@ spring:
               maxBackOff: 500ms
               factor: 2
               basedOnPreviousValue: false
+        - name: RequestRateLimiter
+          args:
+            redis-rate-limiter:
+              replenishRate: 10
+              burstCapacity: 20
+              requestedTokens: 1
       httpclient:
         connect-timeout: 2000
         response-timeout: 5s
