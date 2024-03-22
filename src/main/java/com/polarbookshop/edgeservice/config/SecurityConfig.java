@@ -15,8 +15,15 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.HttpStatusServerEntryPoint;
 import org.springframework.security.web.server.authentication.logout.ServerLogoutHandler;
 import org.springframework.security.web.server.authentication.logout.ServerLogoutSuccessHandler;
+import org.springframework.security.web.server.csrf.CookieServerCsrfTokenRepository;
+import org.springframework.security.web.server.csrf.CsrfToken;
+import org.springframework.security.web.server.csrf.ServerCsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.server.csrf.XorServerCsrfTokenRequestAttributeHandler;
+import org.springframework.web.server.WebFilter;
+import reactor.core.publisher.Mono;
 
 @EnableWebFluxSecurity
+@Configuration
 public class SecurityConfig {
 
     @Bean
@@ -41,8 +48,31 @@ public class SecurityConfig {
                 .logout(logoutSpec -> logoutSpec.logoutSuccessHandler(
                         oidcLogoutSuccessHandler(clientRegistrationRepository)
                 ))
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(CookieServerCsrfTokenRepository.withHttpOnlyFalse())
+                        .csrfTokenRequestHandler(new XorServerCsrfTokenRequestAttributeHandler()::handle))
                 .build();
     }
+
+    @Bean
+    WebFilter csrfCookieWebFilter() {
+        return (exchange, chain) -> {
+            exchange.getAttributeOrDefault(CsrfToken.class.getName(), Mono.empty()).subscribe();
+            return chain.filter(exchange);
+        };
+    }
+
+//    @Bean
+//    WebFilter csrfWebFilter() {
+//        // Required because of https://github.com/spring-projects/spring-security/issues/5766
+//        return (exchange, chain) -> {
+//            exchange.getResponse().beforeCommit(() -> Mono.defer(() -> {
+//                Mono<CsrfToken> csrfToken = exchange.getAttribute(CsrfToken.class.getName());
+//                return csrfToken != null ? csrfToken.then() : Mono.empty();
+//            }));
+//            return chain.filter(exchange);
+//        };
+//    }
 
     private ServerLogoutSuccessHandler oidcLogoutSuccessHandler(
             ReactiveClientRegistrationRepository clientRegistrationRepository) {
@@ -50,7 +80,7 @@ public class SecurityConfig {
         var oidcLogoutSuccessHandler =
                 new OidcClientInitiatedServerLogoutSuccessHandler(clientRegistrationRepository);
 
-        oidcLogoutSuccessHandler.setPostLogoutRedirectUri("{baseUri}");
+        oidcLogoutSuccessHandler.setPostLogoutRedirectUri("{baseUrl}");
         return oidcLogoutSuccessHandler;
 
     }
