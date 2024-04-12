@@ -32,7 +32,7 @@ spec:
             - name: SPA_URL
               value: http://polar-ui
             - name: SPRING_CLOUD_CONFIG_URI
-              value: http://config-service
+              value: http://config-service:8888
             - name: SPRING_DATA_REDIS_HOST
               value: polar-redis
             - name: SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_KEYCLOAK_ISSUER_URI
