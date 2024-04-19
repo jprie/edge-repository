@@ -1,7 +1,6 @@
 spring:
-  data:
-    redis:
-      host: polar-redis
+  redis:
+    host: polar-redis
   security:
     oauth2:
       client:
